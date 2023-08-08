@@ -4,6 +4,9 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import med.voll.api.domain.medico.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -32,6 +35,7 @@ public class MedicoController {
     }
 
     @GetMapping
+    @Cacheable(value = "listarMedicos", key = "listarMedicosId")
     public ResponseEntity<Page<DadosListagemMedico>> listar(@PageableDefault(size = 10, sort = {"nome"}) Pageable paginacao) {
         var page = repository.findAllByAtivoTrue(paginacao).map(DadosListagemMedico::new);
         return ResponseEntity.ok(page);
@@ -39,6 +43,7 @@ public class MedicoController {
 
     @PutMapping
     @Transactional
+    @CachePut(value = "listarMedicos", key = "#listarMedicos.id")
     public ResponseEntity atualizar(@RequestBody @Valid DadosAtualizacaoMedico dados) {
         var medico = repository.getReferenceById(dados.id());
         medico.atualizarInformacoes(dados);
@@ -48,6 +53,7 @@ public class MedicoController {
 
     @DeleteMapping("/{id}")
     @Transactional
+    @CacheEvict(value = "listarMedicos", allEntries=true)
     public ResponseEntity excluir(@PathVariable Long id) {
         var medico = repository.getReferenceById(id);
         medico.excluir();
